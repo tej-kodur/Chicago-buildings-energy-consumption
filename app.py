@@ -12,6 +12,8 @@ def index():
 def get_data():
     df = pd.read_csv('data/chicago_buildings.csv')
     # Convert DataFrame to JSON
+    df = df[['Latitude', 'Longitude', 'Site EUI (kBtu/sq ft)', 'GHG Intensity (kg CO2e/sq ft)']]
+    # Convert DataFrame to JSON
     buildings_data = df.to_dict(orient='records')
     return jsonify(buildings_data)
 

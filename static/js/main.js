@@ -1,51 +1,40 @@
-import * as THREE from 'https://unpkg.com/three/build/three.module.js';
+// Initialize Cesium Viewer with necessary settings
+Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJmOTg0NjgzNS1kMWIzLTQyNGEtODlkNi1mM2EwYjViNTA5YjgiLCJpZCI6MjYwMTYzLCJpYXQiOjE3MzMzNTE2OTZ9.gIgJIXAzMOxwDagCuqFRDu9NpG_fRNu5qEweZ8S3F60'; // Replace with your Cesium Ion access token
 
-// Initialize the map
-const map = L.map('map').setView([41.8781, -87.6298], 13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-}).addTo(map);
+const viewer = new Cesium.Viewer('cesiumContainer', {
+    terrainProvider: Cesium.createWorldTerrain(),
+    shouldAnimate: true,
+    selectionIndicator: false,
+    infoBox: false
+});
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ alpha: true }); // Make sure the renderer background is transparent
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+// Function to add a building to the map as a 3D entity
+function addBuilding(longitude, latitude, height, color) {
+    const position = Cesium.Cartesian3.fromDegrees(longitude, latitude);
+    const barHeight = height * 10; // Scale factor for bar height
+    const colorMaterial = new Cesium.Color.fromCssColorString(color);
 
-const light = new THREE.PointLight(0xffffff, 1, 1000);
-light.position.set(50, 50, 50);
-scene.add(light);
-const ambientLight = new THREE.AmbientLight(0x404040);
-scene.add(ambientLight);
-
-// Function to convert Lat/Lon to Leaflet point
-function latLonToLeafletPoint(lat, lon) {
-    const point = map.latLngToLayerPoint(new L.LatLng(lat, lon));
-    return [point.x, point.y];
+    viewer.entities.add({
+        position: position,
+        box: {
+            dimensions: new Cesium.Cartesian3(30, 30, barHeight),
+            material: colorMaterial,
+            outline: true,
+            outlineColor: Cesium.Color.BLACK
+        }
+    });
 }
 
+// Fetch building data from the server and create 3D bars
 fetch('/api/data')
     .then(response => response.json())
     .then(data => {
-        const scaleHeight = 0.1; // Scale factor for height to make it visible
         data.forEach(building => {
-            const [x, y] = latLonToLeafletPoint(building.Latitude, building.Longitude);
-            const height = building['Site EUI (kBtu/sq ft)'] * scaleHeight;
-            const geometry = new THREE.BoxGeometry(1, 1, height);
-            const colorValue = building['GHG Intensity (kg CO2e/sq ft)'] * 20;
-            const material = new THREE.MeshPhongMaterial({ color: `hsl(${colorValue}, 100%, 50%)` });
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(x - window.innerWidth / 2, -y + window.innerHeight / 2, height / 2);
-            scene.add(mesh);
+            const height = building['Site EUI (kBtu/sq ft)'];
+            const intensity = building['GHG Intensity (kg CO2e/sq ft)'];
+            const color = `hsl(${intensity * 360}, 100%, 50%)`; // Convert GHG intensity to a color
+            addBuilding(building.Longitude, building.Latitude, height, color);
         });
-    });
-
-camera.position.set(0, -300, 300);
-camera.lookAt(new THREE.Vector3(0, 0, 0));
-
-function animate() {
-    requestAnimationFrame(animate);
-    renderer.render(scene, camera);
-}
-
-animate();
+        viewer.zoomTo(viewer.entities); // Adjust the camera to include all entities
+    })
+    .catch(error => console.error('Error loading or processing data:', error));
