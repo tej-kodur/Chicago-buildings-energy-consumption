@@ -1,0 +1,18 @@
+blinker==1.9.0
+click==8.1.7
+Flask==3.1.0
+itsdangerous==2.2.0
+Jinja2==3.1.4
+MarkupSafe==3.0.2
+gunicorn==22.0.0
+numpy== 1.26.0
+pandas==2.1.1
+requests==2.32.0
+matplotlib==3.4.3
+geopandas==0.10.2
+sqlalchemy==1.4.22
+flask-cors==4.0.2
+Werkzeug==3.1.3
+pip==24.3.1
+setuptools==70.0.0
+wheel==0.41.2
